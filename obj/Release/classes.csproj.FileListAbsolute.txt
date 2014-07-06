@@ -1,0 +1,5 @@
+E:\TShock mods\Easy-Classes\obj\Release\classes.csprojResolveAssemblyReference.cache
+C:\Users\Zak\Desktop\build\Easy Classes.dll
+C:\Users\Zak\Desktop\build\Easy Classes.pdb
+E:\TShock mods\Easy-Classes\obj\Release\Easy Classes.dll
+E:\TShock mods\Easy-Classes\obj\Release\Easy Classes.pdb
