@@ -60,7 +60,7 @@ namespace EasyClasses
                             prefix = 60
                         },
                         new ClassItem {
-                            name = "Cobalt Headgear",
+                            name = "Cobalt Helmet",
                             stack = 1,
                             prefix = 0
                         },
