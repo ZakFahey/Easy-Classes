@@ -16,14 +16,13 @@ namespace EasyClasses
         public EasyClasses(Main game) : base(game) {
         }
         public override void Initialize() {
-            Commands.ChatCommands.Add(new Command("canstartclass", classStart, "classstart") {
+            Commands.ChatCommands.Add(new Command("easyclasses.admin.start", classStart, "classstart") {
                 HelpText = "Gives everyone with the canplayclass permission a choice of classes. Format: /classstart <filename> [can have duplicates]"
             });
-            Commands.ChatCommands.Add(new Command("canstartclass", classList, "classlist")
-            {
+            Commands.ChatCommands.Add(new Command("easyclasses.admin.start", classList, "classlist") {
                 HelpText = "Shows all class set files in the class directory."
             });
-            Commands.ChatCommands.Add(new Command("canplayclass", ClassDo, "class") {
+            Commands.ChatCommands.Add(new Command("easyclasses.guest.play", ClassDo, "class") {
                 HelpText = "Commands: /class list <page>, /class start <class>, /class info <class>"
             });
             Directory.CreateDirectory(Path.Combine(TShock.SavePath, "Classes"));
