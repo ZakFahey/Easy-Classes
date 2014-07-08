@@ -28,7 +28,7 @@ namespace EasyClasses
             Directory.CreateDirectory(Path.Combine(TShock.SavePath, "Classes"));
         }
         public override Version Version {
-            get { return new Version("1.0"); }
+            get { return new Version("1.0.1"); }
         }
         public override string Name {
             get { return "Easy Classes"; }
