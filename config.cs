@@ -11,6 +11,11 @@ namespace EasyClasses
     class Config
     {
         public static Contents contents;
+        public static Stats stats;
+
+        public class Stats {
+            public List<ClassStats> classStats = new List<ClassStats>();
+        }
 
         public class Contents {
             public List<PlayerClass> playerClasses = new List<PlayerClass> {
@@ -148,7 +153,14 @@ namespace EasyClasses
             public string description { get; set; }
         }
 
-        public static void CreateConfig(string fname)
+        public class ClassStats {
+            public string Name { get; set; }
+            //public uint Kills = 0;
+            public uint Deaths = 0;
+            public uint Plays = 0;
+        }
+
+        public static void CreateConfig(string fname, bool statistics)
         {
             string filepath = Path.Combine(TShock.SavePath, "Classes", fname);
 
@@ -158,8 +170,17 @@ namespace EasyClasses
                 {
                     using (var sr = new StreamWriter(stream))
                     {
-                        contents = new Contents();
-                        var configString = JsonConvert.SerializeObject(contents, Formatting.Indented);
+                        string configString;
+                        if (statistics)
+                        {
+                            stats = new Stats();
+                            configString = JsonConvert.SerializeObject(stats, Formatting.Indented);
+                        }
+                        else
+                        {
+                            contents = new Contents();
+                            configString = JsonConvert.SerializeObject(contents, Formatting.Indented);
+                        }
                         sr.Write(configString);
                     }
                     stream.Close();
@@ -168,11 +189,12 @@ namespace EasyClasses
             catch (Exception e)
             {
                 Log.ConsoleError(e.Message);
-                contents = new Contents();
+                if (statistics) stats = new Stats();
+                else contents = new Contents();
             }
         }
 
-        public static bool ReadConfig(string fname, TSPlayer plr)
+        public static bool ReadConfig(string fname, TSPlayer plr, bool statistics)
         {
             string filepath = Path.Combine(TShock.SavePath, "Classes", fname);
 
@@ -185,8 +207,13 @@ namespace EasyClasses
                         using (var sr = new StreamReader(stream))
                         {
                             var configString = sr.ReadToEnd();
-                            contents = JsonConvert.DeserializeObject<Contents>(configString);
-                            contents.playerClasses.RemoveRange(0, 3);//Delete default classes
+                            if (statistics)
+                                stats = JsonConvert.DeserializeObject<Stats>(configString);
+                            else
+                            {
+                                contents = JsonConvert.DeserializeObject<Contents>(configString);
+                                contents.playerClasses.RemoveRange(0, 3);//Delete default classes
+                            }
                         }
                         stream.Close();
                     }
@@ -194,7 +221,7 @@ namespace EasyClasses
                 }
                 else
                 {
-                    CreateConfig(fname);
+                    CreateConfig(fname, statistics);
                     Log.ConsoleInfo(String.Format("Created {0}", fname));
                     plr.SendSuccessMessage(String.Format("Created {0}", fname));
                     return true;
@@ -207,7 +234,7 @@ namespace EasyClasses
             return false;
         }
 
-        public static bool UpdateConfig(string fname)
+        public static bool UpdateConfig(string fname, bool statistics)
         {
             string filepath = Path.Combine(TShock.SavePath, "Classes", fname);
 
@@ -216,7 +243,11 @@ namespace EasyClasses
                 if (!File.Exists(filepath))
                     return false;
 
-                string query = JsonConvert.SerializeObject(contents, Formatting.Indented);
+                string query;
+                if (statistics)
+                    query = JsonConvert.SerializeObject(stats, Formatting.Indented);
+                else
+                    query = JsonConvert.SerializeObject(contents, Formatting.Indented);
                 using (var stream = new StreamWriter(filepath, false))
                 {
                     stream.Write(query);
