@@ -155,7 +155,7 @@ namespace EasyClasses {
                     if (!Config.stats.classStats.Exists(x => x.Name == data.name))
                         Config.stats.classStats.Add(new Config.ClassStats { Name = data.name });
                     var stats = Config.stats.classStats.First(x => x.Name == data.name);
-                    e.Player.SendInfoMessage(String.Format("{0}: Plays: {1}, Deaths: {2}", stats.Name, stats.Plays, stats.Deaths));
+                    e.Player.SendInfoMessage(String.Format("{0}: Plays: {1}, Kills: {2}, Deaths: {2}", stats.Name, stats.Plays, stats.Kills, stats.Deaths));
                 }
             }
         }
