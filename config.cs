@@ -155,7 +155,7 @@ namespace EasyClasses
 
         public class ClassStats {
             public string Name { get; set; }
-            //public uint Kills = 0;
+            public uint Kills = 0;
             public uint Deaths = 0;
             public uint Plays = 0;
         }

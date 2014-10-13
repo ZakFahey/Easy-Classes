@@ -11,9 +11,10 @@ namespace EasyClasses {
     [ApiVersion(1, 16)]
     public class EasyClasses : TerrariaPlugin {
         bool canHaveDuplicates { get; set; }
-        Dictionary<TSPlayer, string> PlayerStats = new Dictionary<TSPlayer, string>();
+        bool promptOnJoin = false;
         string classFile { get; set; }
         List<int> playerCan = new List<int>();
+        List<StatPlayer> players = new List<StatPlayer>();
         internal delegate bool GetDataHandlerDelegate(GetDataHandlerArgs args);
         public EasyClasses(Main game) : base(game) {
         }
@@ -28,15 +29,21 @@ namespace EasyClasses {
             {
                 HelpText = "Shows the analytics of a class. Format: /classinfo class"
             });
+            Commands.ChatCommands.Add(new Command("easyclasses.admin.start", classStop, "classstop")
+            {
+                HelpText = "Stops players from getting prompted to pick a class on join."
+            });
             Commands.ChatCommands.Add(new Command("easyclasses.guest.play", ClassDo, "class") {
                 HelpText = "Commands: /class list [page], /class start <class>, /class info <class>"
             });
             Directory.CreateDirectory(Path.Combine(TShock.SavePath, "Classes"));
 
-            TShockAPI.GetDataHandlers.KillMe += KillMe;
+            ServerApi.Hooks.NetGetData.Register(this, GetData);
+            ServerApi.Hooks.NetGreetPlayer.Register(this, OnGreetPlayer);
+            ServerApi.Hooks.ServerLeave.Register(this, OnLeave);
         }
         public override Version Version {
-            get { return new Version("1.1"); }
+            get { return new Version("1.1.1"); }
         }
         public override string Name {
             get { return "Easy Classes"; }
@@ -66,6 +73,7 @@ namespace EasyClasses {
                         e.Player.SendErrorMessage("The second argument must be either true or false.");
                     }
                     playerCan.Clear();
+                    promptOnJoin = true;
                     foreach (TSPlayer player in TShock.Players)
                         if (player != null && player.Active && !player.Dead && player.Group.HasPermission("easyclasses.guest.play")) {
                             if (!playerCan.Contains(player.Index)) playerCan.Add(player.Index);
@@ -112,7 +120,7 @@ namespace EasyClasses {
                                             Config.stats.classStats.Add(new Config.ClassStats { Name = data.name });
                                         Config.stats.classStats.First(x => x.Name == data.name).Plays++;
                                         Config.UpdateConfig(classFile, true);
-                                        PlayerStats.Add(e.Player, data.name);
+                                        players.First(x => x.who == e.Player.Index).Class = data.name;
                                     }
                                     catch {
                                         e.Player.SendErrorMessage("There was a problem with the config file.");
@@ -183,6 +191,13 @@ namespace EasyClasses {
             }
         }
 
+        void classStop(CommandArgs e) {
+            if (promptOnJoin) {
+                promptOnJoin = false;
+                e.Player.SendSuccessMessage("Class selection is now closed off.");
+            }
+        }
+
         Config.PlayerClass Classes(TSPlayer who, string argument) {
             List<Config.PlayerClass> clss = new List<Config.PlayerClass>();
             foreach(Config.PlayerClass cls in Config.contents.playerClasses)
@@ -198,11 +213,67 @@ namespace EasyClasses {
             else return clss[0];
         }
 
-        void KillMe(object sender, TShockAPI.GetDataHandlers.KillMeEventArgs e) {
-            if (e.Pvp && PlayerStats.ContainsKey(TShock.Players[e.PlayerId])) {
-                Config.stats.classStats.First(y => y.Name == PlayerStats[TShock.Players[e.PlayerId]]).Deaths++;
-                Config.UpdateConfig(classFile, true);
+        private void GetData(GetDataEventArgs args) {
+            using (var stream = new MemoryStream(args.Msg.readBuffer, args.Index, args.Length))
+            using (var reader = new BinaryReader(stream)) {
+                if (args.MsgID == PacketTypes.PlayerDamage) {
+                    var killer = args.Msg.whoAmI;
+                    var killed = reader.ReadByte();
+                    var hitDirection = reader.ReadByte();
+                    var damage = reader.ReadInt16();
+                    var player = players.FirstOrDefault(x => (byte)x.who == killed);
+                    /*var pvp = reader.ReadBoolean();
+                    var crit = reader.ReadByte();*/
+
+                    if (player != null)
+                        player.killingPlayer = players.FirstOrDefault(x => (byte)x.who == killer);
+                }
+                if (args.MsgID == PacketTypes.PlayerKillMe) {
+                    var killed = reader.ReadByte();
+                    var hitDirection = reader.ReadByte();
+                    var damage = reader.ReadInt16();
+                    var pvp = reader.ReadBoolean();
+                    var player = players.FirstOrDefault(x => x.who == killed);
+
+                    if (player != null && player.killingPlayer != null && (byte)player.killingPlayer.who != killed) {
+                        Config.stats.classStats.First(y => y.Name == player.Class).Deaths++;
+                        Config.stats.classStats.First(y => y.Name == player.killingPlayer.Class).Kills++;
+                        Config.UpdateConfig(classFile, true);
+                        player.killingPlayer = null;
+                    }
+                }
             }
         }
+
+        void OnGreetPlayer(GreetPlayerEventArgs e) {
+            //add inventory check
+            players.Add(new StatPlayer { who = e.Who });
+            var player = TShock.Players[e.Who];
+            if (promptOnJoin && player != null && player.Active && !player.Dead && player.Group.HasPermission("easyclasses.guest.play")) {
+                if (!playerCan.Contains(e.Who)) playerCan.Add(e.Who);
+                    ShowClasses(player, true);
+            }
+        }
+
+        private void OnLeave(LeaveEventArgs e) {
+            if (players.Exists(x => x.who == e.Who))
+                players.RemoveAll(x => x.who == e.Who);
+        }
+
+        protected override void Dispose(bool disposing) {
+            if (disposing) {
+                ServerApi.Hooks.NetGreetPlayer.Deregister(this, OnGreetPlayer);
+                ServerApi.Hooks.NetGetData.Deregister(this, GetData);
+                ServerApi.Hooks.ServerLeave.Deregister(this, OnLeave);
+            }
+            base.Dispose(disposing);
+        }
+
+    }
+
+    public class StatPlayer {
+        public int who { get; set; }
+        public StatPlayer killingPlayer { get; set; }
+        public string Class {get; set; }
     }
 }
