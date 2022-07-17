@@ -8,7 +8,7 @@ using TerrariaApi.Server;
 using System.IO;
 
 namespace EasyClasses {
-    [ApiVersion(1, 17)]
+    [ApiVersion(2, 1)]
     public class EasyClasses : TerrariaPlugin {
         bool canHaveDuplicates { get; set; }
         bool promptOnJoin = false;
